@@ -28,7 +28,7 @@ func main() {
 		panic(err)
 	}
 	defer output.Close()
-	err = utils.MeasureVersion1(inputfile, output)
+	err = utils.MeasureVersion2(inputfile, output)
 	if err != nil {
 		panic(err)
 	}
