@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func Measure(inputfile string, output io.Writer) error {
+func MeasureVersion1(inputfile string, output io.Writer) error {
 	stationStats := make(map[string]models.StationStats)
 	// Read the input file
 	file, err := os.Open(inputfile)
