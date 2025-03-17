@@ -124,5 +124,5 @@ sys     0m7.453s
 		- Can reduce system calls but may consume too much memory without a major speed gain.
 
 #### Lets try some Benchmarking:
-- [Benchmarking]() File Reading using `bufio.Reader` and `file.Read()` for different buffer sizes
+- [Benchmarking](https://github.com/agamrai0123/go-1brc/blob/main/internal/tests/buffer_test.go) File Reading using `bufio.Reader` and `file.Read()` for different buffer sizes
 	- Keep in mind that this is a large file, so we can try with 1 Million Rows for the tests
