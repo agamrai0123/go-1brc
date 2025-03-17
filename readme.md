@@ -7,6 +7,13 @@ I am following the article by [Ben Hoyt](https://benhoyt.com/writings/go-one-bil
 - use the command `./go-1brc -cpuprofile cpu.prof` to create a pprof CPU profile.
 - use the command `go tool pprof -http=:8080 cpu.prof` to run the pprof profile.
 - [Graphviz](https://graphviz.org/download/) is required for generating call graphs in pprof.
+- In pprof, if a function takes X seconds (Y%) of A seconds (B%) then:
+    - **Self-time**: The *X seconds* represents time spent inside function itself (excluding time in functions it calls).
+    - **Cumulative time**: The *A seconds* includes *X seconds* self-time + time spent in any other functions that the function calls.
+
+- ***How to optimise a function***:
+    - If **self-time** is high, optimizing this function directly will have a big impact.
+    - If **cumulative-time** is high, most of the cost is in its children, and optimizing those might be more effective.
 
 ## 🚨 Why is this hard?
 - It is **1 Billion Rows!!!!!!!!**
@@ -44,9 +51,9 @@ sys     0m7.453s
 ### Solution 1: Simple Go
 - [Solution](https://github.com/agamrai0123/go-1brc/blob/main/internal/utils/version1.go)
 - Time taken: 126.89 seconds
-- [pprof]()
+- [pprof](https://github.com/agamrai0123/go-1brc/blob/main/pprof_graphs/version1.png)
 
-##### Observation:
+##### Observations:
 - Map operations taking almost 27% of the runtime. 16% for access/read and 11% for assign/write.
 - bufio scan taking almost 20% of the runtime.
 - bufio text, for reading line by line is taking 17.5% of the runtime.
@@ -89,3 +96,33 @@ sys     0m7.453s
 		temp = -temp
 	}
 ```
+### Solution 2:
+- [Solution](https://github.com/agamrai0123/go-1brc/blob/main/internal/utils/version2.go)
+- Time taken: 49.62 seconds
+- [pprof](https://github.com/agamrai0123/go-1brc/blob/main/pprof_graphs/version2.png)
+
+##### Observations:
+- Map Access takes up 22.60% of the runtime.
+- `bytes.Cut` takes up 11.76% of the runtime.
+- bufio Scan takes up 36.16% of the runtime.
+
+##### Next Steps:
+- Avoid bufio.Scanner
+	- Read bytes one by one to locate the newline.
+	- Process the same bytes again to read and process the line.
+	- This results in double processing of bytes, which is inefficient.
+
+###### How buffer Size depends on read time:
+- **Buffer Size & Read Time**
+	- **Small Buffer (< 4KB)**
+		- Too many system calls → slow performance.
+
+	- **Medium Buffer (4KB - 64KB)**
+		- Generally optimal for performance. OS likes block sizes of 4KB-16KB.
+
+	- **Large Buffer (> 1MB)**
+		- Can reduce system calls but may consume too much memory without a major speed gain.
+
+#### Lets try some Benchmarking:
+- [Benchmarking]() File Reading using `bufio.Reader` and `file.Read()` for different buffer sizes
+	- Keep in mind that this is a large file, so we can try with 1 Million Rows for the tests
