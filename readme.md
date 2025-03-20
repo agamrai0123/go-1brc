@@ -15,6 +15,15 @@ I am following the article by [Ben Hoyt](https://benhoyt.com/writings/go-one-bil
     - If **self-time** is high, optimizing this function directly will have a big impact.
     - If **cumulative-time** is high, most of the cost is in its children, and optimizing those might be more effective.
 
+- ***Max Goroutines recommendations**:
+
+| Workload Type 							     | Suggested maxGoroutines  |
+|------------------------------------------------|--------------------------|
+| `CPU-Intensive (e.g., hash computation)`       | **runtime.NumCPU()**  	|
+| `I/O-Bound (e.g., DB queries, HTTP requests)`  | **100-1000**             |
+| `Mixed Workload`  							 | **NumCPU() * 10**        |
+| `Memory-Constrained` 							 | **Test & adjust**        |
+
 ## 🚨 Why is this hard?
 - It is **1 Billion Rows!!!!!!!!**
 - You must:
@@ -111,6 +120,40 @@ sys     0m7.453s
 	- Read bytes one by one to locate the newline.
 	- Process the same bytes again to read and process the line.
 	- This results in double processing of bytes, which is inefficient.
+- Using Fixed Point Integers instead of float
+	- Using integers to represent the temperature (in tenths) is typically better than using floats because it’s more efficient and avoids potential pitfalls with floating-point precision.
+- Avoid bytes.Cut
+	- the *line* is in the format `<station>;<temperature>`
+	- `<station>` is a variable-length string representing a station identifier.
+	- `<temperature>` is a floating-point value formatted as either:
+		- N.N
+		- NN.N
+		- -N.N
+		- -NN.N
+```
+end := len(line)
+tenths := int32(line[end-1] - '0')
+ones := int32(line[end-3] - '0') // line[end-2] is '.'
+var temp int32
+var semicolon int
+if line[end-4] == ';' {          // positive N.N temperature
+    temp = ones*10 + tenths
+    semicolon = end - 4
+} else if line[end-4] == '-' {   // negative -N.N temperature
+    temp = -(ones*10 + tenths)
+    semicolon = end - 5
+} else {
+    tens := int32(line[end-4] - '0')
+    if line[end-5] == ';' {      // positive NN.N temperature
+        temp = tens*100 + ones*10 + tenths
+        semicolon = end - 5
+    } else {                     // negative -NN.N temperature
+        temp = -(tens*100 + ones*10 + tenths)
+        semicolon = end - 6
+    }
+}
+station := line[:semicolon]
+```
 
 ###### How buffer Size depends on read time:
 - **Buffer Size & Read Time**
@@ -125,4 +168,23 @@ sys     0m7.453s
 
 #### Lets try some Benchmarking:
 - [Benchmarking](https://github.com/agamrai0123/go-1brc/blob/main/internal/tests/buffer_test.go) File Reading using `bufio.Reader` and `file.Read()` for different buffer sizes
-	- Keep in mind that this is a large file, so we can try with 1 Million Rows for the tests
+	- Keep in mind that this is a large file, so it might be better to try with 1 Million Rows for the tests
+
+- [Test Results]()
+
+#### Inferences
+- **Small Buffer Sizes (1KB–8KB)**: Performance varies. Direct is faster at 1KB (24.616s vs 25.154s), Bufio is faster at 2KB (18.827s vs 20.911s), and Direct outperforms Bufio significantly at 8KB (19.648s vs 24.692s).
+- **Medium to Large Sizes (16KB–64MB)**: Times decrease as buffer size increases, reaching a minimum at 4MB (Direct: 10.918s, Bufio: 10.810s), then slightly increase or stabilize. Bufio is marginally faster at 4MB.
+- **Overall Trend**: Larger buffers (e.g., 4MB) reduce read time significantly compared to 1KB (by over 50%), but beyond 4MB, gains diminish, and times rise slightly, possibly due to memory overhead.
+
+
+### Solution 3:
+- [Solution](https://github.com/agamrai0123/go-1brc/blob/main/internal/utils/version3.go)
+- Time taken: 28.33 seconds
+- [pprof](https://github.com/agamrai0123/go-1brc/blob/main/pprof_graphs/version3.png)
+
+##### Observations:
+- Map Access dominates the runtime and takes up 59.91% of the runtime.
+
+##### Next Steps:
+- Custom Map Access
