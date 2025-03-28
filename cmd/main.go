@@ -4,11 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"go_1brc/internal/utils"
+	"log"
 	"os"
 	"runtime/pprof"
+	"time"
 )
 
 func main() {
+	now := time.Now()
 	var cpuProfile = flag.String("cpuprofile", "", "write CPU profile to file")
 	flag.Parse()
 	if *cpuProfile != "" {
@@ -32,5 +35,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Measurements processed and written to", outputfile)
+	log.Println("Measurements processed and written to", outputfile)
+	log.Println(time.Since(now))
 }

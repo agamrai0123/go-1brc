@@ -3,7 +3,7 @@ I am following the article by [Ben Hoyt](https://benhoyt.com/writings/go-one-bil
 
 ## 🚀 Quick Points to Remember
 - The `measurements.txt` file contains **1 Billion rows** (~13 GB), so **do not add it to GitHub**.  
-  Add it to `.gitignore
+  Add it to `.gitignore`
 - use the command `./go-1brc -cpuprofile cpu.prof` to create a pprof CPU profile.
 - use the command `go tool pprof -http=:8080 cpu.prof` to run the pprof profile.
 - [Graphviz](https://graphviz.org/download/) is required for generating call graphs in pprof.
@@ -170,7 +170,7 @@ station := line[:semicolon]
 - [Benchmarking](https://github.com/agamrai0123/go-1brc/blob/main/internal/tests/buffer_test.go) File Reading using `bufio.Reader` and `file.Read()` for different buffer sizes
 	- Keep in mind that this is a large file, so it might be better to try with 1 Million Rows for the tests
 
-- [Test Results]()
+- [Test Results](https://github.com/agamrai0123/go-1brc/blob/main/internal/tests/buffer_test.xlsx)
 
 #### Inferences
 - **Small Buffer Sizes (1KB–8KB)**: Performance varies. Direct is faster at 1KB (24.616s vs 25.154s), Bufio is faster at 2KB (18.827s vs 20.911s), and Direct outperforms Bufio significantly at 8KB (19.648s vs 24.692s).
@@ -188,3 +188,4 @@ station := line[:semicolon]
 
 ##### Next Steps:
 - Custom Map Access
+- Try to parallelise
